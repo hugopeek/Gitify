@@ -109,7 +109,17 @@ class ExtractCommand extends BaseCommand
 
             // Prepare the criteria for this context
             $contextCriteria = ($criteria) ? $criteria : array();
-            $contextCriteria['context_key'] = $contextKey;
+
+            // Accept OR conditions (see: https://github.com/modmore/Gitify/pull/197)
+            if (empty($contextCriteria) || count(array_filter(array_keys($contextCriteria), 'is_string')) > 0) {
+                // associative array => and conditions
+                $contextCriteria['context_key'] = $contextKey;
+            } else {
+                // sequential array => or conditions
+                foreach ($contextCriteria as $i => $orCondition) {
+                    $contextCriteria[$i]['context_key'] = $contextKey;
+                }
+            }
 
             // Grab the count
             $count = $this->modx->getCount('modResource', $contextCriteria);
