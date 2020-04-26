@@ -189,11 +189,10 @@ class InstallPackageCommand extends BaseCommand
         // when we got a match (non 404), extract package information
         if (!$response->isError()) {
 
-            $foundPkg = simplexml_load_string ($response->response);
+            $foundPkg = simplexml_load_string($response->response);
 
             // no matches, skip empty package name
-            if ($foundPkg['total'] > 0) {
-
+            if ($foundPkg) {
                 $packages[strtolower((string) $foundPkg->name)] = array (
                     'name' => (string) $foundPkg->name,
                     'version' => (string) $foundPkg->version,
