@@ -194,7 +194,7 @@ class InstallPackageCommand extends BaseCommand
             // no matches, skip empty package name
             if ($foundPkg['total'] > 0) {
 
-                $packages [strtolower((string) $foundPkg->name)] = array (
+                $packages[strtolower((string) $foundPkg->name)] = array (
                     'name' => (string) $foundPkg->name,
                     'version' => (string) $foundPkg->version,
                     'location' => (string) $foundPkg->location,
