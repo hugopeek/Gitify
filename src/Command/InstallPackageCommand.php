@@ -264,22 +264,20 @@ class InstallPackageCommand extends BaseCommand
             'supports' => $product_version,
             'signature' => $packageName,
         ));
-        
+
         // when we got a match (non 404), extract package information
         if (!$response->isError()) {
 
-            $foundPkg = simplexml_load_string ( $response->response );
+            $foundPkg = simplexml_load_string($response->response);
 
             // no matches, skip empty package name
-            if ($foundPackages['total'] > 0) {
-
-              $packages [strtolower((string) $foundPkg->name)] = array (
-                  'name' => (string) $foundPkg->name,
-                  'version' => (string) $foundPkg->version,
-                  'location' => (string) $foundPkg->location,
-                  'signature' => (string) $foundPkg->signature
-              );
-              
+            if ($foundPkg) {
+                $packages[strtolower((string) $foundPkg->name)] = array (
+                    'name' => (string) $foundPkg->name,
+                    'version' => (string) $foundPkg->version,
+                    'location' => (string) $foundPkg->location,
+                    'signature' => (string) $foundPkg->signature
+                );
             }
         }
 
@@ -289,23 +287,37 @@ class InstallPackageCommand extends BaseCommand
                 'supports' => $product_version,
                 'query' => $packageName,
             ));
-            
+
             // Check for a proper response
             if (!empty($response)) {
-                 
+
                 $foundPackages = simplexml_load_string($response->response);
+                $packageVersions = array();
+
                 // no matches, simply return
                 if ($foundPackages['total'] == 0) {
                     return true;
                 }
-                
+
+                // Create array with available package versions
                 foreach ($foundPackages as $foundPkg) {
-                    $packages[strtolower((string)$foundPkg->name)] = array(
+                    $packageVersions[] = array(
                         'name' => (string)$foundPkg->name,
                         'version' => (string)$foundPkg->version,
                         'location' => (string)$foundPkg->location,
                         'signature' => (string)$foundPkg->signature,
                     );
+                }
+
+                // Use first result, which should be the latest version
+                $package = $packageVersions[0];
+
+                // Verify that the result contains the package name
+                if (strpos($package['signature'], $packageName) !== false) {
+                    $packages[strtolower($package['name'])] = $package;
+                }
+                else {
+                    $this->output->writeln("<error>Couldn't install $packageName because the response did not match the package name.</error>");
                 }
             }
         }
@@ -313,10 +325,10 @@ class InstallPackageCommand extends BaseCommand
         // process found packages
         if (!empty($packages)) {
 
-            $this->output->writeln('Found ' . count($packages) . ' package(s).');
+            //$this->output->writeln('Found ' . count($packages) . ' package(s).');
 
             $helper = $this->getHelper('question');            
-            
+
             // Ensure the exact match is always first
             if (isset($packages[strtolower($packageName)])) {
                 $packages = array($packageName => $packages[strtolower($packageName)]) + $packages;
