@@ -35,8 +35,9 @@ class InstallModxCommand extends BaseCommand
                 'The version of MODX to install, in the format 2.3.2-pl. Leave empty or specify "latest" to install the last stable release.',
                 'latest'
             )
-            ->addArgument(
-                'configFile',
+            ->addOption(
+                'config',
+                'c',
                 InputArgument::OPTIONAL,
                 'Path to XML configuration file. Leave empty to enter configuration details through the command line.',
                 ''
@@ -59,14 +60,17 @@ class InstallModxCommand extends BaseCommand
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $version = $this->input->getArgument('version');
-        $configFile = $this->input->getArgument('configFile');
+        $configFile = $this->input->getOption('config');
         $forced = $this->input->getOption('download');
 
         if (!$this->getMODX($version, $forced)) {
             return 1; // exit
         }
 
-        if ($configFile) {
+        if ($configFile && !file_exists($configFile)) {
+            $output->writeln("<error>Could not find a valid config file.</error>");
+            return 1;
+        } else if ($configFile && file_exists($configFile)) {
             // Load config from file
             $config = $configFile;
         } else {
@@ -84,7 +88,7 @@ class InstallModxCommand extends BaseCommand
         $output->writeln("<comment>{$setupOutput[0]}</comment>");
 
         // Try to clean up the config file
-        if (!unlink($config)) {
+        if (!$configFile && !unlink($config)) {
             $output->writeln("<warning>Warning:: could not clean up the setup config file, please remove this manually.</warning>");
         }
 
