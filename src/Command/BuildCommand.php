@@ -477,6 +477,23 @@ class BuildCommand extends BaseCommand
                 $catName = $data['category'];
                 $data['category'] = $this->getCategoryId($catName);
             }
+
+            // Make sure default value is applied to empty tinyint fields
+            foreach ($object->_fieldMeta as $key => $value) {
+                if ($value['dbtype'] == 'tinyint') {
+
+                    // Skip fields that are explicitly set in YAML config
+                    if (isset($data[$key])) continue;
+
+                    // Reset fields with a value other than the default
+                    if (isset($value['default']) && $object->get($key) != $value['default']) {
+                        if ($this->output->isVerbose()) {
+                            $this->output->writeln("- Resetting <comment>$key</comment> field to default value for <comment>" . $object->get('name') . "</comment> object.");
+                        }
+                        $data[$key] = $value['default'];
+                    }
+                }
+            }
         }
 
         $object->fromArray($data, '', true, true);
