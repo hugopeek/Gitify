@@ -481,9 +481,10 @@ class BuildCommand extends BaseCommand
             // Make sure default value is applied to empty tinyint fields
             foreach ($object->_fieldMeta as $key => $value) {
                 if ($value['dbtype'] == 'tinyint') {
+                    $excludes = (isset($type['exclude_keys']) && is_array($type['exclude_keys'])) ? $type['exclude_keys'] : array();
 
-                    // Skip fields that are explicitly set in YAML config
-                    if (isset($data[$key])) continue;
+                    // Skip fields that are explicitly defined OR excluded in YAML config
+                    if (isset($data[$key]) || in_array($key, $excludes)) continue;
 
                     // Reset fields with a value other than the default
                     if (isset($value['default']) && $object->get($key) != $value['default']) {
