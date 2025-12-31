@@ -137,10 +137,10 @@ class RestoreCommand extends BaseCommand
         $database_password = str_replace("'", '\'', $database_password);
 
         if (substr($file, -3) !== '.gz') {
-            exec("mysql -u {$database_user} -p'{$database_password}' -h {$database_server} {$dbase} < \"{$targetDirectory}{$file}\" ");
+            exec("mariadb -u {$database_user} -p'{$database_password}' -h {$database_server} {$dbase} < \"{$targetDirectory}{$file}\" ");
         }
         else {
-            exec("zcat \"{$targetDirectory}{$file}\" | mysql -u {$database_user} -p'{$database_password}' -h {$database_server} {$dbase}");
+            exec("zcat \"{$targetDirectory}{$file}\" | mariadb -u {$database_user} -p'{$database_password}' -h {$database_server} {$dbase}");
         }
 
         return 0;
