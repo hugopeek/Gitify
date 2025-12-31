@@ -82,14 +82,29 @@ class BuildCommand extends BaseCommand
     {
         $this->isForce = $input->getOption('force');
         if ($this->isForce && !$input->getOption('no-backup')) {
+            // Ensure Gitify's ArrayInput class is loaded first to avoid autoloader conflicts
+            if (!class_exists('Symfony\Component\Console\Input\ArrayInput', false)) {
+                // Try to load from Gitify's vendor directory specifically
+                $arrayInputPath = __DIR__ . '/../../vendor/symfony/console/Input/ArrayInput.php';
+                if (file_exists($arrayInputPath)) {
+                    require_once $arrayInputPath;
+                }
+            }
+            
             $backup = $this->getApplication()->find('backup');
+
             $arguments = array(
                 'command' => 'backup'
             );
             $backupInput = new ArrayInput($arguments);
-            if ($backup->run($backupInput, $output) !== 0) {
-                $output->writeln('<error>Could not write backup. Try building without --force, or specify the --no-backup flag to force build without writing a backup.');
-                return 1;
+            
+            try {
+                if ($backup->run($backupInput, $output) !== 0) {
+                    $output->writeln('<error>Could not write backup. Try building without --force, or specify the --no-backup flag to force build without writing a backup.</error>');
+                    return 1;
+                }
+            } catch (ExceptionInterface $e) {
+                $output->writeln('<error>' . $e->getMessage() . '</error>');
             }
         }
 
@@ -476,6 +491,24 @@ class BuildCommand extends BaseCommand
             if (isset($data['category']) && !empty($data['category']) && !is_numeric($data['category'])) {
                 $catName = $data['category'];
                 $data['category'] = $this->getCategoryId($catName);
+            }
+
+            // Make sure default value is applied to empty tinyint fields
+            foreach ($object->_fieldMeta as $key => $value) {
+                if ($value['dbtype'] == 'tinyint') {
+                    $excludes = (isset($type['exclude_keys']) && is_array($type['exclude_keys'])) ? $type['exclude_keys'] : array();
+
+                    // Skip fields that are explicitly defined OR excluded in YAML config
+                    if (isset($data[$key]) || in_array($key, $excludes)) continue;
+
+                    // Reset fields with a value other than the default
+                    if (isset($value['default']) && $object->get($key) != $value['default']) {
+                        if ($this->output->isVerbose()) {
+                            $this->output->writeln("- Resetting <comment>$key</comment> field to default value for <comment>" . $object->get('name') . "</comment> object.");
+                        }
+                        $data[$key] = $value['default'];
+                    }
+                }
             }
         }
 
