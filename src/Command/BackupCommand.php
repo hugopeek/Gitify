@@ -50,6 +50,12 @@ class BackupCommand extends BaseCommand
                 'c',
                 InputOption::VALUE_NONE,
                 'When specified, resulting backup file will be gzip compressed.'
+            )            
+            ->addOption(
+                'ignore-table',
+                'ignore',
+                InputArgument::OPTIONAL,
+                'When specified, the tables are ignored. Separate multiple tables with commas.'
             );
     }
 
@@ -132,9 +138,19 @@ class BackupCommand extends BaseCommand
 
         $tablespaces = $input->getOption('no-tablespaces') ? ' --no-tablespaces' : '';
         $gzip = $input->getOption('compress') ? '| gzip - ' : '';
-
-        exec("mysqldump{$tablespaces} -u {$database_user} {$password_parameter} -h {$database_server} {$dbase} {$gzip}> {$targetFile} ");
-
+        
+        // Specified tables are ignored from dump
+        $ignoretables = $input->getOption('ignore-table');
+        $ignoretables_parameter = '';
+        if ($ignoretables) {
+            $ignoretables_parameters = [];
+            foreach (explode(',', $ignoretables) as $tablename) {
+                $ignoretables_parameters[] = '--ignore-table=' . $dbase . '.' . $tablename;
+            }
+            $ignoretables_parameter = implode(' ', $ignoretables_parameters);
+        }
+        
+        exec("mysqldump{$tablespaces} -u {$database_user} {$password_parameter} -h {$database_server} {$dbase} {$ignoretables_parameter} {$gzip}> {$targetFile} ");
 
         return 0;
     }
